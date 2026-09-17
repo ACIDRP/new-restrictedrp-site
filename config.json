@@ -1,0 +1,18 @@
+{
+  "app": {
+    "secret_key": "j28FhRF2qfn7h7bk67v30GvjfVWXreCxLJogpPrZU_3YZP2o-CInwiIASr4tbKqA",
+    "port": 3000,
+    "cookie_secure": false,
+    "dev_mode": false
+  },
+  "discord": {
+    "client_id": "1340448604158033920",
+    "client_secret": "sqRPKEuF63v5KuyljCn_UlaoaSlnKEG1",
+    "redirect_uri": "https://restrictedrpau.site/api/auth/discord/callback",
+    "guild_id": "1122771905980670022",
+    "event_manager_role_ids": [
+      "1186795975944196116",
+      "1227448379110461510"
+    ]
+  }
+}
