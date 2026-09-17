@@ -1,31 +1,39 @@
-import os, sqlite3, secrets
+import os, json, sqlite3, secrets
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from urllib.parse import urlencode
 
 import requests
 from flask import Flask, jsonify, redirect, render_template, request, session, send_from_directory
-from dotenv import load_dotenv
 
-load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'events.db')
 
+CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
+try:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
+        CONFIG = json.load(config_file)
+except (OSError, json.JSONDecodeError) as exc:
+    raise RuntimeError(f'Unable to load config.json: {exc}') from exc
+
+APP_CONFIG = CONFIG.get('app', {})
+DISCORD_CONFIG = CONFIG.get('discord', {})
+
 app = Flask(__name__, static_folder=None)
-app.secret_key = os.getenv('FLASK_SECRET_KEY') or os.getenv('SECRET_KEY') or secrets.token_hex(32)
+app.secret_key = APP_CONFIG.get('secret_key') or secrets.token_hex(32)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('COOKIE_SECURE', '0').lower() in ('1', 'true', 'yes')
+app.config['SESSION_COOKIE_SECURE'] = bool(APP_CONFIG.get('cookie_secure', False))
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_COOKIE_NAME'] = 'restrictedrp_session'
 
-DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '')
-DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', '')
-DISCORD_GUILD_ID = os.getenv('DISCORD_GUILD_ID', '')
-DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'http://localhost:3000/auth/discord/callback')
-EVENT_MANAGER_ROLE_IDS = {x.strip() for x in os.getenv('EVENT_MANAGER_ROLE_IDS', '').split(',') if x.strip()}
-DEV_MODE = os.getenv('DEV_MODE', 'false').lower() == 'true'
+DISCORD_CLIENT_ID = str(DISCORD_CONFIG.get('client_id', ''))
+DISCORD_CLIENT_SECRET = str(DISCORD_CONFIG.get('client_secret', ''))
+DISCORD_GUILD_ID = str(DISCORD_CONFIG.get('guild_id', ''))
+DISCORD_REDIRECT_URI = DISCORD_CONFIG.get('redirect_uri', 'http://localhost:3000/auth/discord/callback')
+EVENT_MANAGER_ROLE_IDS = {str(role_id).strip() for role_id in DISCORD_CONFIG.get('event_manager_role_ids', []) if str(role_id).strip()}
+DEV_MODE = bool(APP_CONFIG.get('dev_mode', False))
 
 
 def db():
@@ -133,7 +141,7 @@ def manager_required(fn):
 @app.route('/auth/discord')
 def discord_login():
     if not DISCORD_CLIENT_ID:
-        return 'Discord OAuth is not configured. Fill in .env first.', 500
+        return 'Discord OAuth is not configured. Fill in config.json first.', 500
     state = secrets.token_urlsafe(48)
     # Store OAuth state server-side so the callback does not depend on the
     # browser returning Flask's session cookie after leaving for Discord.
@@ -278,5 +286,5 @@ def rsvp(event_id):
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', '3000'))
+    port = int(APP_CONFIG.get('port', 3000))
     app.run(host='0.0.0.0', port=port, debug=False)
