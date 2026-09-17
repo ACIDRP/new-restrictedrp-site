@@ -1,0 +1,29 @@
+[build]
+  publish = "public"
+
+# Friendly routes for the static frontend.
+[[redirects]]
+  from = "/events"
+  to = "/events/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/events/"
+  to = "/events/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/staff/events"
+  to = "/staff/events/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/staff/events/"
+  to = "/staff/events/index.html"
+  status = 200
+
+# SPA fallback for any client-side routes that don't map to a file.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
